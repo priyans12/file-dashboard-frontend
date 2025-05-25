@@ -14,7 +14,8 @@ const FileItem = ({ item, onOpen, onDelete, onRename, readonly }) => {
 
   const handleView = () => {
     if (!isFolder) {
-      window.open(`${API_BASE}/${item.path}`, '_blank');
+      const publicURL = API_BASE.replace('/api', '');
+      window.open(`${publicURL}/${item.path}`, '_blank');
     }
   };
 
