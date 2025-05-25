@@ -12,28 +12,23 @@ const CoordinatorDashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      navigate('/');
-    }, 3000);
+    const timeout = setTimeout(() => navigate('/'), 3000);
 
     API.get('/list', { params: { parent } })
       .then(res => {
         clearTimeout(timeout);
-        if (Array.isArray(res.data)) {
-          setItems(res.data);
-        } else {
-          setItems([]);
-        }
+        const data = Array.isArray(res.data) ? res.data : [];
+        setItems(data);
         if (parent) {
-          const folder = res.data.find((item) => item._id === parent);
-          if (folder) setCurrentFolderName(folder.name);
+          API.get('/list', { params: { parent: null } }).then(all => {
+            const folder = all.data.find((i) => i._id === parent);
+            setCurrentFolderName(folder?.name || '');
+          });
         } else {
           setCurrentFolderName('');
         }
       })
-      .catch(() => {
-        navigate('/');
-      });
+      .catch(() => navigate('/'));
   }, [parent, refresh]);
 
   return (
@@ -45,7 +40,9 @@ const CoordinatorDashboard = () => {
       </div>
 
       <div className="container">
-        <h2>View Files in {currentFolderName || 'Queensford Vet For School DMS'}</h2>
+        <h2>
+          View Files in {currentFolderName || 'Queensford Vet For School DMS'}
+        </h2>
 
         <ul className="file-list">
           {items.map((item) => (
