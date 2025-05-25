@@ -7,11 +7,15 @@ const FileItem = ({ item, onOpen, onDelete, onRename, readonly }) => {
   const isFolder = item.type === 'folder';
 
   const handleDownload = () => {
-    window.location.href = `${API_BASE}/download/${item._id}`;
+    if (!isFolder) {
+      window.location.href = `${API_BASE}/download/${item._id}`;
+    }
   };
 
   const handleView = () => {
-    window.open(`${API_BASE}/${item.path}`, '_blank');
+    if (!isFolder) {
+      window.open(`${API_BASE}/${item.path}`, '_blank');
+    }
   };
 
   return (
@@ -23,17 +27,17 @@ const FileItem = ({ item, onOpen, onDelete, onRename, readonly }) => {
       <div className="file-actions">
         {isFolder && <button onClick={onOpen}>Open</button>}
 
-        {!isFolder && readonly && (
-          <>
-            <button onClick={handleView}>View</button>
-            <button onClick={handleDownload}>Download</button>
-          </>
-        )}
-
         {!readonly && !isFolder && (
           <>
             <button onClick={onDelete}>Delete</button>
             <button onClick={onRename}>Rename</button>
+          </>
+        )}
+
+        {!isFolder && readonly && (
+          <>
+            <button onClick={handleView}>View</button>
+            <button onClick={handleDownload}>Download</button>
           </>
         )}
       </div>
