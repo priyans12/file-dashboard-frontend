@@ -1,26 +1,38 @@
+
 import React, { useEffect, useState } from 'react';
 import API from '../api';
 import FileItem from '../components/FileItem';
 import RenameModal from '../components/RenameModal';
 import logo from '../assets/queensford-logo.png';
+import { useNavigate } from 'react-router-dom';
 
 const ManagerDashboard = () => {
   const [items, setItems] = useState([]);
-  const [parent, setParent] = useState(null);
+  const [parent, setParent] = useState(null); // ✅ Fixed: must be null not ""
   const [file, setFile] = useState(null);
   const [folderName, setFolderName] = useState('');
   const [refresh, setRefresh] = useState(false);
   const [renameTarget, setRenameTarget] = useState(null);
-  const [currentFolderName, setCurrentFolderName] = useState('');
+  const [folderLabel, setFolderLabel] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
-    API.get('/list', { params: { parent } }).then(res => setItems(res.data));
-    if (parent) {
-      API.get('/folder-name', { params: { id: parent } })
-        .then(res => setCurrentFolderName(res.data.name || ''));
-    } else {
-      setCurrentFolderName('');
-    }
+    const timeout = setTimeout(() => navigate('/'), 3000);
+
+    API.get('/list', { params: { parent } })
+      .then(res => {
+        clearTimeout(timeout);
+        const data = Array.isArray(res.data) ? res.data : [];
+        setItems(data);
+        if (parent) {
+          API.get('/api/folder-name', { params: { id: parent } }).then(r => {
+            setFolderLabel(r.data.name);
+          });
+        } else {
+          setFolderLabel('');
+        }
+      })
+      .catch(() => navigate('/'));
   }, [parent, refresh]);
 
   const handleUpload = async () => {
@@ -40,8 +52,8 @@ const ManagerDashboard = () => {
     setRefresh(!refresh);
   };
 
-  const handleRename = async (id, newName) => {
-    await API.put(`/rename/${id}`, { newName });
+  const handleRename = async (id, name) => {
+    await API.put(`/rename/${id}`, { newName: name });
     setRenameTarget(null);
     setRefresh(!refresh);
   };
@@ -76,11 +88,7 @@ const ManagerDashboard = () => {
           <button onClick={handleUpload}>Upload</button>
         </div>
 
-        <h2>
-          {parent
-            ? `Manage Files in ${currentFolderName}`
-            : 'Manage Files in Queensford Vet For School DMS'}
-        </h2>
+        <h2>Manage Files in {folderLabel || 'Queensford Vet For School DMS'}</h2>
 
         <ul className="file-list">
           {items.map((item) => (
