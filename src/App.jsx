@@ -2,7 +2,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
-<components></components>/Login';
 import ManagerDashboard from './pages/ManagerDashboard';
 import CoordinatorDashboard from './pages/CoordinatorDashboard';
 import { getRole } from './auth';
