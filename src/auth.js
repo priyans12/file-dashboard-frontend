@@ -1,16 +1,23 @@
-let currentRole = null;
+// src/auth.js
 
 export const login = (username, password) => {
-  if (username === 'manager' && password === 'admin123') {
-    currentRole = 'manager';
+  const credentials = {
+    manager: 'admin123',
+    coordinator: 'viewonly',
+  };
+
+  if (credentials[username] === password) {
+    localStorage.setItem('userRole', username);
     return true;
   }
-  if (username === 'coordinator' && password === 'viewonly') {
-    currentRole = 'coordinator';
-    return true;
-  }
+
   return false;
 };
 
-export const getRole = () => currentRole;
-export const logout = () => { currentRole = null };
+export const getRole = () => {
+  return localStorage.getItem('userRole');
+};
+
+export const logout = () => {
+  localStorage.removeItem('userRole');
+};
