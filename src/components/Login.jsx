@@ -1,47 +1,58 @@
-// src/pages/Login.jsx
 import React, { useState } from 'react';
+import { login, getRole } from '../auth';
 import { useNavigate } from 'react-router-dom';
-import logo from '../assets/queensford-logo.png';
+import logo from '../assets/logo.png';
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-
-    const users = {
-      manager: 'admin123',
-      coordinator: 'viewonly',
-    };
-
-    if (users[username] && users[username] === password) {
-      localStorage.setItem('userRole', username);
-      if (username === 'manager') {
-        navigate('/manager');
-      } else {
-        navigate('/coordinator');
-      }
+  const handleLogin = () => {
+    if (login(username, password)) {
+      const role = getRole();
+      navigate(role === 'manager' ? '/manager' : '/coordinator');
     } else {
-      setError('Invalid credentials');
+      alert('Invalid credentials');
     }
   };
 
   return (
-    <div className="login-page">
+    <>
+      <div className="header">
+        <h1>Queensford College VETCO Portal</h1>
+      </div>
+
       <div className="login-box">
         <img src={logo} alt="Queensford Logo" />
-        <h2>Queensford College Portal</h2>
-        <form onSubmit={handleLogin}>
-          <input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required />
-          <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
-          <button type="submit">Login</button>
-        </form>
-        {error && <p style={{ color: 'red', marginTop: '10px' }}>{error}</p>}
+        <input
+          type="text"
+          placeholder="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <button onClick={handleLogin}>Login</button>
       </div>
-    </div>
+
+      <div className="footer">
+        <p><strong>Queensland – Brisbane Campus (Head Office)</strong><br />
+          Level 2, 359 Queen Street, Brisbane, QLD 4000<br />
+          +61 73221 1626 · info@queensford.edu.au</p>
+        <p><strong>South Australia – Adelaide Campus</strong><br />
+          Level 11, 90 King William Street, Adelaide SA 5000<br />
+          +61 8 8410 4605 · sa@queensford.edu.au</p>
+        <p><strong>New South Wales – Parramatta Campus</strong><br />
+          Level 4, 16–18 Wentworth Street, Parramatta NSW 2150<br />
+          +61 2 8660 0040 · syd@queensford.edu.au</p>
+        <p>© 2025 Queensford College | CRICOS No: 03010G | RTO: 31736</p>
+      </div>
+    </>
   );
 };
 
