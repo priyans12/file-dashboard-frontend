@@ -2,14 +2,34 @@ import React, { useEffect, useState } from 'react';
 import API from '../api';
 import FileItem from '../components/FileItem';
 import logo from '../assets/queensford-logo.png';
+import { useNavigate } from 'react-router-dom';
 
 const CoordinatorDashboard = () => {
   const [items, setItems] = useState([]);
   const [parent, setParent] = useState(null);
+  const [currentFolderName, setCurrentFolderName] = useState('');
+  const [refresh, setRefresh] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    API.get('/list', { params: { parent } }).then(res => setItems(res.data));
-  }, [parent]);
+    const timeout = setTimeout(() => navigate('/'), 3000);
+
+    API.get('/list', { params: { parent } })
+      .then(res => {
+        clearTimeout(timeout);
+        const data = Array.isArray(res.data) ? res.data : [];
+        setItems(data);
+        if (parent) {
+          API.get('/list', { params: { parent: null } }).then(all => {
+            const folder = all.data.find((i) => i._id === parent);
+            setCurrentFolderName(folder?.name || '');
+          });
+        } else {
+          setCurrentFolderName('');
+        }
+      })
+      .catch(() => navigate('/'));
+  }, [parent, refresh]);
 
   return (
     <>
@@ -20,7 +40,9 @@ const CoordinatorDashboard = () => {
       </div>
 
       <div className="container">
-        <h2>View Queensford College Vet For School Files</h2>
+        <h2>
+          View Files in {currentFolderName || 'Queensford Vet For School DMS'}
+        </h2>
 
         <ul className="file-list">
           {items.map((item) => (
