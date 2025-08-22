@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import API from '../api';
 import FileItem from '../components/FileItem';
@@ -8,12 +7,14 @@ import { useNavigate } from 'react-router-dom';
 
 const ManagerDashboard = () => {
   const [items, setItems] = useState([]);
-  const [parent, setParent] = useState(null); // ✅ Fixed: must be null not ""
+  const [parent, setParent] = useState(null);
   const [file, setFile] = useState(null);
   const [folderName, setFolderName] = useState('');
   const [refresh, setRefresh] = useState(false);
   const [renameTarget, setRenameTarget] = useState(null);
   const [folderLabel, setFolderLabel] = useState('');
+  const [showUploadInfo, setShowUploadInfo] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,31 +37,82 @@ const ManagerDashboard = () => {
   }, [parent, refresh]);
 
   const handleUpload = async () => {
-    if (!file) return;
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('parent', parent);
-    await API.post('/upload', formData);
-    setFile(null);
-    setRefresh(!refresh);
+    if (!file) {
+      alert('Please select a file first!');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('parent', parent);
+      
+      await API.post('/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 300000, // 5 minutes timeout for large files
+      });
+      
+      setFile(null);
+      setRefresh(!refresh);
+      
+      // Clear the file input
+      const fileInput = document.querySelector('input[type="file"]');
+      if (fileInput) fileInput.value = '';
+      
+      alert('File uploaded successfully!');
+    } catch (err) {
+      console.error('Upload error:', err);
+      alert('Upload failed: ' + (err.response?.data?.detail || err.message));
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleCreateFolder = async () => {
-    if (!folderName) return;
-    await API.post('/folders', { name: folderName, parent });
-    setFolderName('');
-    setRefresh(!refresh);
+    if (!folderName) {
+      alert('Please enter a folder name!');
+      return;
+    }
+    
+    try {
+      await API.post('/folders', { name: folderName, parent });
+      setFolderName('');
+      setRefresh(!refresh);
+    } catch (err) {
+      alert('Failed to create folder: ' + (err.response?.data?.detail || err.message));
+    }
   };
 
   const handleRename = async (id, name) => {
-    await API.put(`/rename/${id}`, { newName: name });
-    setRenameTarget(null);
-    setRefresh(!refresh);
+    try {
+      await API.put(`/rename/${id}`, { newName: name });
+      setRenameTarget(null);
+      setRefresh(!refresh);
+    } catch (err) {
+      alert('Rename failed: ' + (err.response?.data?.detail || err.message));
+    }
   };
 
   const handleDelete = async (id) => {
-    await API.delete(`/delete/${id}`);
-    setRefresh(!refresh);
+    if (confirm('Are you sure you want to delete this item?')) {
+      try {
+        await API.delete(`/delete/${id}`);
+        setRefresh(!refresh);
+      } catch (err) {
+        alert('Delete failed: ' + (err.response?.data?.detail || err.message));
+      }
+    }
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   return (
@@ -80,13 +132,89 @@ const ManagerDashboard = () => {
                 placeholder="New folder name"
                 value={folderName}
                 onChange={(e) => setFolderName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleCreateFolder()}
               />
-              <button onClick={handleCreateFolder}>Create Folder</button>
+              <button onClick={handleCreateFolder} disabled={!folderName}>
+                Create Folder
+              </button>
             </>
           )}
-          <input type="file" onChange={(e) => setFile(e.target.files[0])} />
-          <button onClick={handleUpload}>Upload</button>
+          
+          <input 
+            type="file" 
+            onChange={(e) => setFile(e.target.files[0])}
+            disabled={uploading}
+          />
+          
+          <button 
+            onClick={handleUpload} 
+            disabled={!file || uploading}
+            style={{ 
+              backgroundColor: uploading ? '#6c757d' : '#007bff',
+              cursor: uploading ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {uploading ? 'Uploading...' : 'Upload'}
+          </button>
+          
+          <button 
+            onClick={() => setShowUploadInfo(!showUploadInfo)}
+            style={{ backgroundColor: '#6c757d' }}
+          >
+            📋 {showUploadInfo ? 'Hide' : 'Show'} Info
+          </button>
         </div>
+
+        {/* Upload Info Panel */}
+        {showUploadInfo && (
+          <div className="upload-info">
+            <h4 style={{ margin: '0 0 15px 0', color: '#00c2cb' }}>
+              📁 File Upload Information
+            </h4>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', fontSize: '13px' }}>
+              <div>
+                <strong>🎥 Videos (Max 500MB):</strong><br />
+                MP4, AVI, MOV, MKV, WMV, FLV, WEBM, M4V, MPG, MPEG, 3GP
+              </div>
+              <div>
+                <strong>🖼️ Images:</strong><br />
+                JPG, JPEG, PNG, GIF, BMP, WEBP, SVG, ICO, TIFF
+              </div>
+              <div>
+                <strong>🎵 Audio:</strong><br />
+                MP3, WAV, FLAC, AAC, OGG, M4A, WMA
+              </div>
+              <div>
+                <strong>📄 Documents:</strong><br />
+                PDF, DOC, DOCX, TXT, RTF, PPT, PPTX, XLS, XLSX, CSV
+              </div>
+              <div>
+                <strong>📦 Archives:</strong><br />
+                ZIP, RAR, 7Z, TAR, GZ
+              </div>
+            </div>
+            <div style={{ marginTop: '10px', padding: '8px', background: 'rgba(0,123,255,0.1)', borderRadius: '5px' }}>
+              <strong>💡 Tips:</strong> Large video files may take a few minutes to upload. 
+              The page will show "Uploading..." during the process.
+            </div>
+          </div>
+        )}
+
+        {/* File upload status */}
+        {file && (
+          <div style={{ 
+            background: 'rgba(0, 194, 203, 0.1)', 
+            border: '1px solid #00c2cb', 
+            borderRadius: '8px', 
+            padding: '10px', 
+            margin: '10px 0',
+            textAlign: 'left'
+          }}>
+            <strong>Selected File:</strong> {file.name}<br />
+            <strong>Size:</strong> {formatFileSize(file.size)}<br />
+            <strong>Type:</strong> {file.type || 'Unknown'}
+          </div>
+        )}
 
         <h2>Manage Files in {folderLabel || 'Queensford Vet For School DMS'}</h2>
 
@@ -103,6 +231,24 @@ const ManagerDashboard = () => {
           ))}
         </ul>
 
+        {items.length === 0 && (
+          <div style={{ 
+            padding: '40px', 
+            color: '#888', 
+            textAlign: 'center',
+            background: 'rgba(255,255,255,0.05)',
+            borderRadius: '10px',
+            border: '2px dashed #555',
+            margin: '20px 0'
+          }}>
+            <h3>📁 No files yet</h3>
+            <p>Upload your first file or create a folder to get started!</p>
+            <p style={{ fontSize: '14px', color: '#666' }}>
+              Supported: Videos, Images, Documents, Audio files up to 500MB
+            </p>
+          </div>
+        )}
+
         {renameTarget && (
           <RenameModal
             item={renameTarget}
@@ -111,7 +257,18 @@ const ManagerDashboard = () => {
           />
         )}
 
-        {parent && <button onClick={() => setParent(null)}>⬅ Back</button>}
+        {parent && (
+          <button 
+            onClick={() => setParent(null)}
+            style={{ 
+              marginTop: '20px',
+              background: '#6c757d',
+              padding: '10px 20px'
+            }}
+          >
+            ⬅ Back to Root
+          </button>
+        )}
       </div>
 
       <div className="footer">

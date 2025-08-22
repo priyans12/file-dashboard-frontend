@@ -9,27 +9,70 @@ const CoordinatorDashboard = () => {
   const [parent, setParent] = useState(null);
   const [currentFolderName, setCurrentFolderName] = useState('');
   const [refresh, setRefresh] = useState(false);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const timeout = setTimeout(() => navigate('/'), 3000);
 
+    setLoading(true);
     API.get('/list', { params: { parent } })
       .then(res => {
         clearTimeout(timeout);
         const data = Array.isArray(res.data) ? res.data : [];
         setItems(data);
+        
         if (parent) {
-          API.get('/list', { params: { parent: null } }).then(all => {
-            const folder = all.data.find((i) => i._id === parent);
-            setCurrentFolderName(folder?.name || '');
-          });
+          // Get folder name
+          API.get('/folder-name', { params: { id: parent } })
+            .then(r => {
+              setCurrentFolderName(r.data.name);
+            })
+            .catch(() => setCurrentFolderName('Unknown Folder'));
         } else {
           setCurrentFolderName('');
         }
       })
-      .catch(() => navigate('/'));
-  }, [parent, refresh]);
+      .catch((err) => {
+        console.error('Failed to load files:', err);
+        navigate('/');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [parent, refresh, navigate]);
+
+  // Count different file types
+  const getFileStats = () => {
+    const stats = {
+      folders: 0,
+      videos: 0,
+      images: 0,
+      documents: 0,
+      other: 0
+    };
+
+    items.forEach(item => {
+      if (item.type === 'folder') {
+        stats.folders++;
+      } else {
+        const ext = item.name.split('.').pop().toLowerCase();
+        if (['mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm', 'm4v'].includes(ext)) {
+          stats.videos++;
+        } else if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(ext)) {
+          stats.images++;
+        } else if (['pdf', 'doc', 'docx', 'txt', 'rtf', 'ppt', 'pptx'].includes(ext)) {
+          stats.documents++;
+        } else {
+          stats.other++;
+        }
+      }
+    });
+
+    return stats;
+  };
+
+  const stats = getFileStats();
 
   return (
     <>
@@ -40,22 +83,86 @@ const CoordinatorDashboard = () => {
       </div>
 
       <div className="container">
-        <h2>
-          View Files in {currentFolderName || 'Queensford Vet For School DMS'}
-        </h2>
+        <div style={{ marginBottom: '20px' }}>
+          <h2>
+            View Files in {currentFolderName || 'Queensford Vet For School DMS'}
+          </h2>
+          
+          {/* File stats */}
+          {items.length > 0 && (
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              padding: '15px',
+              borderRadius: '10px',
+              margin: '15px 0',
+              display: 'flex',
+              gap: '20px',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              fontSize: '14px'
+            }}>
+              {stats.folders > 0 && <span>📁 {stats.folders} Folders</span>}
+              {stats.videos > 0 && <span>🎥 {stats.videos} Videos</span>}
+              {stats.images > 0 && <span>🖼️ {stats.images} Images</span>}
+              {stats.documents > 0 && <span>📄 {stats.documents} Documents</span>}
+              {stats.other > 0 && <span>📦 {stats.other} Other Files</span>}
+            </div>
+          )}
+        </div>
 
-        <ul className="file-list">
-          {items.map((item) => (
-            <FileItem
-              key={item._id}
-              item={item}
-              onOpen={() => item.type === 'folder' && setParent(item._id)}
-              readonly={true}
-            />
-          ))}
-        </ul>
+        {loading ? (
+          <div style={{
+            padding: '40px',
+            textAlign: 'center',
+            color: '#888'
+          }}>
+            <div className="uploading">Loading files...</div>
+          </div>
+        ) : (
+          <ul className="file-list">
+            {items.map((item) => (
+              <FileItem
+                key={item._id}
+                item={item}
+                onOpen={() => item.type === 'folder' && setParent(item._id)}
+                readonly={true}
+              />
+            ))}
+          </ul>
+        )}
 
-        {parent && <button onClick={() => setParent(null)}>⬅ Back</button>}
+        {!loading && items.length === 0 && (
+          <div style={{ 
+            padding: '40px', 
+            color: '#888', 
+            textAlign: 'center',
+            background: 'rgba(255,255,255,0.05)',
+            borderRadius: '10px',
+            border: '2px dashed #555',
+            margin: '20px 0'
+          }}>
+            <h3>📁 No files in this {parent ? 'folder' : 'location'}</h3>
+            <p>This {parent ? 'folder is empty' : 'directory has no files yet'}.</p>
+            {!parent && (
+              <p style={{ fontSize: '14px', color: '#666' }}>
+                Files uploaded by managers will appear here.
+              </p>
+            )}
+          </div>
+        )}
+
+        {parent && (
+          <button 
+            onClick={() => setParent(null)}
+            style={{ 
+              marginTop: '20px',
+              background: '#6c757d',
+              padding: '10px 20px'
+            }}
+          >
+            ⬅ Back to Root
+          </button>
+        )}
       </div>
 
       <div className="footer">

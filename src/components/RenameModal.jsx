@@ -23,9 +23,24 @@ const RenameModal = ({ item, onClose, onSave }) => {
   }, [item]);
 
   const handleSave = () => {
+    if (!baseName.trim()) {
+      alert('Please enter a name');
+      return;
+    }
+    
     const fullName = baseName.trim() + extension;
-    if (baseName.trim() && fullName !== item.name) {
-      onSave(fullName);
+    if (fullName !== item.name) {
+      onSave(item._id, fullName);
+    } else {
+      onClose();
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    } else if (e.key === 'Escape') {
+      onClose();
     }
   };
 
@@ -34,36 +49,56 @@ const RenameModal = ({ item, onClose, onSave }) => {
   return (
     <div className="modal">
       <div className="modal-content">
-        <h3 style={{ marginBottom: '10px' }}>Rename {item.type === 'file' ? 'File' : 'Folder'}</h3>
-        <div style={{ display: 'flex', gap: '5px' }}>
+        <h3>Rename {item.type === 'file' ? 'File' : 'Folder'}</h3>
+        
+        <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
           <input
             type="text"
             value={baseName}
             onChange={(e) => setBaseName(e.target.value)}
             placeholder="Enter new name"
+            onKeyPress={handleKeyPress}
+            autoFocus
             style={{
-              padding: '10px',
+              padding: '12px',
               flex: 1,
-              borderRadius: '6px',
-              border: '1px solid #ccc',
+              borderRadius: '8px',
+              border: '1px solid #00c2cb',
+              background: '#222',
+              color: '#fff',
+              fontSize: '14px'
             }}
           />
           {extension && (
             <div style={{
-              backgroundColor: '#eee',
-              padding: '10px 12px',
-              borderRadius: '6px',
+              backgroundColor: '#00c2cb',
+              color: 'white',
+              padding: '12px 15px',
+              borderRadius: '8px',
               fontWeight: 'bold',
-              color: '#555',
-              minWidth: '60px'
+              fontSize: '14px',
+              minWidth: '60px',
+              textAlign: 'center'
             }}>
               {extension}
             </div>
           )}
         </div>
-        <div style={{ marginTop: '15px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-          <button onClick={handleSave} style={{ padding: '8px 16px' }}>Save</button>
-          <button onClick={onClose} style={{ padding: '8px 16px', backgroundColor: '#888' }}>Cancel</button>
+        
+        <div className="button-group" style={{ marginTop: '20px' }}>
+          <button 
+            className="save" 
+            onClick={handleSave}
+            disabled={!baseName.trim()}
+          >
+            Save
+          </button>
+          <button 
+            className="cancel" 
+            onClick={onClose}
+          >
+            Cancel
+          </button>
         </div>
       </div>
     </div>
