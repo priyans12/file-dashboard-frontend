@@ -26,7 +26,7 @@ const ManagerDashboard = () => {
         const data = Array.isArray(res.data) ? res.data : [];
         setItems(data);
         if (parent) {
-          API.get('/api/folder-name', { params: { id: parent } }).then(r => {
+          API.get('/folder-name', { params: { id: parent } }).then(r => {
             setFolderLabel(r.data.name);
           });
         } else {

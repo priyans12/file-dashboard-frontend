@@ -23,7 +23,7 @@ const CoordinatorDashboard = () => {
         setItems(data);
         
         if (parent) {
-          // Get folder name
+          // Get folder name - FIXED: removed extra /api
           API.get('/folder-name', { params: { id: parent } })
             .then(r => {
               setCurrentFolderName(r.data.name);
