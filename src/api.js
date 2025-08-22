@@ -38,7 +38,7 @@ apiClient.interceptors.response.use(
       console.error('Request timeout - file might be too large');
       error.message = 'Upload timeout - please try with a smaller file or check your connection';
     } else if (error.response?.status === 413) {
-      error.message = 'File too large - maximum size is 500MB';
+      error.message = 'File too large - maximum size is 600MB';
     } else if (error.response?.status === 415) {
       error.message = 'File type not supported';
     } else if (!error.response) {
